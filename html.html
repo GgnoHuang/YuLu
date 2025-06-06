@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>景點分類</title>
+  <!-- 引入 antd 的 CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/4.24.15/antd.min.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      padding: 24px;
+      background-color: #f0f2f5;
+    }
+    .container {
+      width: 100%;
+      margin: 0 auto;
+      justify-content: center;
+    }
+    .site-layout-content {
+      background: #fff;
+      padding: 24px;
+      min-height: 280px;
+      border-radius: 2px;
+    }
+    .ant-card {
+      margin-bottom: 16px;
+    }
+    .ant-card-head {
+      background-color: #fafafa;
+    }
+    .spot-list {
+      margin-top: 8px;
+    }
+    .spot-item {
+      padding: 4px 0;
+      color: #666;
+    }
+    .country-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="app"></div>
+  </div>
+
+  <!-- 引入 React 和 ReactDOM -->
+  <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+  <!-- 引入 antd -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/antd/4.24.15/antd.min.js"></script>
+  <!-- 引入 Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- 引入地點數據 -->
+  <script src="locationData.js"></script>
+
+  <script type="text/babel">
+    const { Row, Col, Card, Typography, Badge, Button, Collapse } = antd;
+    const { Title } = Typography;
+
+    function processData(data) {
+      const lines = data.split("\n");
+      const countryMap = {};
+
+      lines.forEach(line => {
+        const parts = line.split(",");
+        if (parts.length < 2) return;
+
+        const [index, rest] = parts;
+        const [country, spot] = rest.trim().split(" ");
+        if (!countryMap[country]) {
+          countryMap[country] = [];
+        }
+        countryMap[country].push(spot);
+      });
+
+      return countryMap;
+    }
+
+    function App() {
+      const asiaData = processData(AsiaData);
+      const euData = processData(EuData);
+      const oceaniaData = processData(OceaniaData);
+      const americaData = processData(AmericaData);
+      const africaData = processData(AfricaData);
+      const [expandedKeys, setExpandedKeys] = React.useState([]);
+
+      // 检查重复景点的函数
+      const checkDuplicates = () => {
+        const allSpots = [];
+        const duplicates = new Set();
+
+        // 收集所有景点
+        [...Object.entries(asiaData), ...Object.entries(euData), 
+         ...Object.entries(oceaniaData), ...Object.entries(americaData),
+         ...Object.entries(africaData)].forEach(([country, spots]) => {
+          spots.forEach(spot => {
+            const spotKey = `${country} ${spot}`;
+            if (allSpots.includes(spotKey)) {
+              duplicates.add(spotKey);
+            }
+            allSpots.push(spotKey);
+          });
+        });
+
+        // 输出重复的景点
+        if (duplicates.size > 0) {
+          alert('發現重複景點：');
+          duplicates.forEach(spot => console.log(spot));
+        } else {
+          alert('沒有發現重複景點');
+        }
+      };
+
+      // 一键展开/折叠所有景点
+      const toggleAll = () => {
+        if (expandedKeys.length > 0) {
+          setExpandedKeys([]); // 折叠所有
+        } else {
+          // 展开所有
+          const allKeys = [
+            ...Object.keys(asiaData),
+            ...Object.keys(euData),
+            ...Object.keys(oceaniaData),
+            ...Object.keys(americaData),
+            ...Object.keys(africaData)
+          ];
+          setExpandedKeys(allKeys);
+        }
+      };
+
+      // 计算各大洲的景点总数
+      const asiaTotal = Object.values(asiaData).reduce((sum, spots) => sum + spots.length, 0);
+      const euTotal = Object.values(euData).reduce((sum, spots) => sum + spots.length, 0);
+      const oceaniaTotal = Object.values(oceaniaData).reduce((sum, spots) => sum + spots.length, 0);
+      const americaTotal = Object.values(americaData).reduce((sum, spots) => sum + spots.length, 0);
+      const africaTotal = Object.values(africaData).reduce((sum, spots) => sum + spots.length, 0);
+
+      // 计算总景点数
+      const totalSpots = asiaTotal + euTotal + oceaniaTotal + americaTotal + africaTotal;
+
+
+      const sapnNum = 4
+      return (
+        <div>
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <Title level={2} style={{ display: 'inline-block', marginRight: 16 }}>
+              世界景點分類 <Badge count={totalSpots} style={{ backgroundColor: '#1890ff' }} overflowCount={999999} />
+            </Title>
+            <Button type="primary" onClick={checkDuplicates} style={{ marginLeft: 16 }}>
+              檢查重複景點
+            </Button>
+            <Button 
+              type="primary" 
+              onClick={toggleAll} 
+              style={{ marginLeft: 16 }}
+            >
+              {expandedKeys.length > 0 ? '一鍵折疊' : '一鍵展開'}
+            </Button>
+          </div>
+          <Row style={{width: '100%',justifyContent: 'center'}} gutter={24} >
+            <Col span={sapnNum}>
+              <Card title={
+                <div className="country-title">
+                  亞洲景點 <Badge count={asiaTotal} style={{ backgroundColor: '#1890ff' }} overflowCount={999999} />
+                </div>
+              } bordered={false}>
+                <Collapse activeKey={expandedKeys} onChange={setExpandedKeys}>
+                  {Object.entries(asiaData).map(([country, spots]) => (
+                    <Collapse.Panel 
+                      key={country} 
+                      header={
+                        <div className="country-title">
+                          {country}
+                          <Badge count={spots.length} style={{ backgroundColor: spots.length >= 5 ? '#ff4d4f' : '#0080FF' }} />
+                        </div>
+                      }
+                    >
+                      <div className="spot-list">
+                        {spots.map((spot, index) => (
+                          <div key={index} className="spot-item">
+                            {spot}
+                          </div>
+                        ))}
+                      </div>
+                    </Collapse.Panel>
+                  ))}
+                </Collapse>
+              </Card>
+            </Col>
+            <Col span={sapnNum}>
+              <Card title={
+                <div className="country-title">
+                  歐洲景點 <Badge count={euTotal} style={{ backgroundColor: '#1890ff' }} overflowCount={999999} />
+                </div>
+              } bordered={false}>
+                <Collapse activeKey={expandedKeys} onChange={setExpandedKeys}>
+                  {Object.entries(euData).map(([country, spots]) => (
+                    <Collapse.Panel 
+                      key={country} 
+                      header={
+                        <div className="country-title">
+                          {country}
+                          <Badge count={spots.length} style={{ backgroundColor: spots.length >= 5 ? '#ff4d4f' : '#0080FF' }} />
+                        </div>
+                      }
+                    >
+                      <div className="spot-list">
+                        {spots.map((spot, index) => (
+                          <div key={index} className="spot-item">
+                            {spot}
+                          </div>
+                        ))}
+                      </div>
+                    </Collapse.Panel>
+                  ))}
+                </Collapse>
+              </Card>
+            </Col>
+            <Col span={sapnNum}>
+              <Card title={
+                <div className="country-title">
+                  大洋洲景點 <Badge count={oceaniaTotal} style={{ backgroundColor: '#1890ff' }} overflowCount={999999} />
+                </div>
+              } bordered={false}>
+                <Collapse activeKey={expandedKeys} onChange={setExpandedKeys}>
+                  {Object.entries(oceaniaData).map(([country, spots]) => (
+                    <Collapse.Panel 
+                      key={country} 
+                      header={
+                        <div className="country-title">
+                          {country}
+                          <Badge count={spots.length} style={{ backgroundColor: spots.length >= 5 ? '#ff4d4f' : '#0080FF' }} />
+                        </div>
+                      }
+                    >
+                      <div className="spot-list">
+                        {spots.map((spot, index) => (
+                          <div key={index} className="spot-item">
+                            {spot}
+                          </div>
+                        ))}
+                      </div>
+                    </Collapse.Panel>
+                  ))}
+                </Collapse>
+              </Card>
+            </Col>
+            <Col span={sapnNum}>
+              <Card title={
+                <div className="country-title">
+                  美洲景點 <Badge count={americaTotal} style={{ backgroundColor: '#1890ff' }} overflowCount={999999} />
+                </div>
+              } bordered={false}>
+                <Collapse activeKey={expandedKeys} onChange={setExpandedKeys}>
+                  {Object.entries(americaData).map(([country, spots]) => (
+                    <Collapse.Panel 
+                      key={country} 
+                      header={
+                        <div className="country-title">
+                          {country}
+                          <Badge count={spots.length} style={{ backgroundColor: spots.length >= 5 ? '#ff4d4f' : '#0080FF' }} />
+                        </div>
+                      }
+                    >
+                      <div className="spot-list">
+                        {spots.map((spot, index) => (
+                          <div key={index} className="spot-item">
+                            {spot}
+                          </div>
+                        ))}
+                      </div>
+                    </Collapse.Panel>
+                  ))}
+                </Collapse>
+              </Card>
+            </Col>
+            <Col span={sapnNum}>
+              <Card title={
+                <div className="country-title">
+                  非洲景點 <Badge count={africaTotal} style={{ backgroundColor: '#1890ff' }} overflowCount={999999} />
+                </div>
+              } bordered={false}>
+                <Collapse activeKey={expandedKeys} onChange={setExpandedKeys}>
+                  {Object.entries(africaData).map(([country, spots]) => (
+                    <Collapse.Panel 
+                      key={country} 
+                      header={
+                        <div className="country-title">
+                          {country}
+                          <Badge count={spots.length} style={{ backgroundColor: spots.length >= 5 ? '#ff4d4f' : '#0080FF' }} />
+                        </div>
+                      }
+                    >
+                      <div className="spot-list">
+                        {spots.map((spot, index) => (
+                          <div key={index} className="spot-item">
+                            {spot}
+                          </div>
+                        ))}
+                      </div>
+                    </Collapse.Panel>
+                  ))}
+                </Collapse>
+              </Card>
+            </Col>
+          </Row>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('app'));
+  </script>
+</body>
+</html>
